@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Video Recorder</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+        background-color: #f4f4f4;
+      }
+      video {
+        width: 100%;
+        max-width: 480px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+      }
+      .overlay {
+        position: absolute;
+        top: 10%;
+        color: white;
+        font-size: 1.5rem;
+        background-color: rgba(0, 0, 0, 0.6);
+        padding: 5px 10px;
+        border-radius: 5px;
+      }
+      .controls {
+        margin-top: 10px;
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 1rem;
+        margin: 0 5px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <div class="overlay" id="question">What motivates you to train?</div>
+      <video id="camera" autoplay muted playsinline></video>
+      <div class="controls">
+        <button id="start">Start Recording</button>
+        <button id="stop" disabled>Stop Recording</button>
+      </div>
+    </div>
+    <script>
+      const videoElement = document.getElementById("camera");
+      const startButton = document.getElementById("start");
+      const stopButton = document.getElementById("stop");
+      const questionOverlay = document.getElementById("question");
+
+      let mediaRecorder;
+      let recordedChunks = [];
+
+      async function initCamera() {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "user" },
+            audio: true,
+          });
+          videoElement.srcObject = stream;
+          return stream;
+        } catch (error) {
+          console.error("Error accessing camera:", error);
+          alert("Unable to access camera. Please check your permissions.");
+        }
+      }
+
+      async function startRecording() {
+        const stream = await initCamera();
+        questionOverlay.style.display = "none";
+        startButton.disabled = true;
+        stopButton.disabled = false;
+
+        mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm" });
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            recordedChunks.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(recordedChunks, { type: "video/webm" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "recorded-video.webm";
+          a.click();
+          recordedChunks = [];
+        };
+
+        mediaRecorder.start();
+      }
+
+      function stopRecording() {
+        questionOverlay.style.display = "block";
+        startButton.disabled = false;
+        stopButton.disabled = true;
+        mediaRecorder.stop();
+      }
+
+      startButton.addEventListener("click", startRecording);
+      stopButton.addEventListener("click", stopRecording);
+    </script>
+  </body>
+</html>
